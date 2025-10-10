@@ -10,9 +10,9 @@ import {
   Product,
   User,
   Business,
-  BusinessBanner,
+  Banner,
+  Document,
 } from "../models";
-import { ProductDocument } from "../models/ProductDocument";
 
 dotenv.config();
 
@@ -40,8 +40,8 @@ const sequelize = new Sequelize({
     Measurement,
     Invoice,
     Business,
-    ProductDocument,
-    BusinessBanner,
+    Document,
+    Banner,
   ],
   // pool: {
   //   max: 5,

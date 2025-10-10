@@ -30,6 +30,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        businessId: business.id,
       },
       token,
     });
@@ -56,6 +57,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     const token = generateToken(user.id);
 
+    const business = await Business.findOne({ where: { ownerId: user.id } });
+
     res.json({
       message: "Login successful",
       user: {
@@ -63,6 +66,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        businessId: business?.id,
       },
       token,
     });

@@ -11,13 +11,13 @@ class S3Service {
 
   constructor() {
     this.s3Client = new S3Client({
-      region: process.env.AWS_REGION!,
+      region: process.env.S3_REGION!,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+        accessKeyId: process.env.S3_ACCESS_KEY!,
+        secretAccessKey: process.env.S3_SECRET_KEY!,
       },
     });
-    this.bucketName = process.env.AWS_S3_BUCKET!;
+    this.bucketName = process.env.S3_BUCKET!;
   }
 
   async uploadFile(
@@ -25,18 +25,23 @@ class S3Service {
     fileName: string,
     contentType: string
   ): Promise<string> {
-    const key = `uploads/${Date.now()}-${fileName}`;
+    try {
+      const key = `images/${Date.now()}-${fileName}`;
 
-    const command = new PutObjectCommand({
-      Bucket: this.bucketName,
-      Key: key,
-      Body: file,
-      ContentType: contentType,
-    });
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: file,
+        ContentType: contentType,
+      });
 
-    await this.s3Client.send(command);
+      await this.s3Client.send(command);
 
-    return `https://${this.bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+      return `https://${this.bucketName}.s3.${process.env.S3_REGION}.amazonaws.com/${key}`;
+    } catch (err: any) {
+      console.log(err);
+      return err.toString();
+    }
   }
 
   async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {

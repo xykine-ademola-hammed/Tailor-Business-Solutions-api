@@ -11,6 +11,7 @@ import measurementRoutes from "./routes/measurementRoutes";
 import invoiceRoutes from "./routes/invoiceRoutes";
 import productRoutes from "./routes/productRoutes";
 import analyticsRoutes from "./routes/analyticsRoutes";
+import bannerRoutes from "./routes/bannerRoutes";
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use("/api/measurements", measurementRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/banners", bannerRoutes);
 // app.use('/api/businessBanner', businessBannerRoutes);
 
 app.use(errorHandler);

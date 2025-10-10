@@ -1,11 +1,50 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
-import { Business, Product, ProductCategory, ProductDocument } from "../models";
+import { Business, Product, ProductCategory, Document } from "../models";
 import { Op } from "sequelize";
 import s3Service from "../services/s3Service";
 import { promises as fs } from "fs";
 
 export const getProducts = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { category, search, page = 1, limit = 10, isActive } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    const whereClause: any = {};
+    if (category) whereClause.category = category;
+    if (isActive !== undefined) whereClause.isActive = isActive === "true";
+    if (search) {
+      whereClause[Op.or] = [
+        { name: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } },
+      ];
+    }
+
+    const { rows: products, count } = await Product.findAndCountAll({
+      where: whereClause,
+      limit: Number(limit),
+      offset,
+      order: [["name", "ASC"]],
+    });
+
+    res.json({
+      products,
+      pagination: {
+        total: count,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(count / Number(limit)),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getMyProducts = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
@@ -35,6 +74,7 @@ export const getProducts = async (
       limit: Number(limit),
       offset,
       order: [["name", "ASC"]],
+      include: [{ model: Document, as: "documents" }],
     });
 
     res.json({
@@ -71,7 +111,7 @@ export const getProduct = async (
   }
 };
 
-// import { Business, Product, ProductDocument } from "..."; // your models
+// import { Business, Product, Document } from "..."; // your models
 // import { s3Service } from "...";                        // your S3 wrapper
 // import type { AuthRequest } from "...";                 // your auth request type
 
@@ -82,28 +122,23 @@ export const createProduct = async (
   res: Response
 ): Promise<void> => {
   try {
-    /** ------------------------------------------------------------
-     * Support multipart/form-data where "product" is a JSON field
-     * and files come in as images / images[] (via Multer).
-     * ------------------------------------------------------------ */
-    const raw =
-      typeof (req.body as any)?.product === "string"
-        ? JSON.parse((req.body as any).product)
-        : req.body ?? {};
+    console.log("Request body:", req.body);
+    const product = JSON.parse(req.body.product);
+
+    console.log("Received product data:", product);
 
     const {
       name,
-      unit,
       description,
       availableDesigns = [],
       fabricTypes = [], // [{ name: string, cost: number }]
       availableColors = [],
-    } = raw;
+    } = product;
 
-    if (!name || !unit) {
+    if (!name) {
       res.status(400).json({
         success: false,
-        error: "Missing required fields: name and unit.",
+        error: "Missing required fields: name.",
       });
       return;
     }
@@ -135,7 +170,7 @@ export const createProduct = async (
     /** ------------------------------------------------------------
      * Create Product
      * ------------------------------------------------------------ */
-    const product = await Product.create({
+    const newProduct = await Product.create({
       name,
       options: {
         availableColors,
@@ -145,7 +180,6 @@ export const createProduct = async (
       lowPrice,
       highPrice,
       description,
-      unit,
       businessId: business.id,
     });
 
@@ -158,10 +192,7 @@ export const createProduct = async (
       files = (req as any).files as Express.Multer.File[];
     } else if ((req as any).files && typeof (req as any).files === "object") {
       const grouped = req as any;
-      files =
-        (grouped.files["images"] as Express.Multer.File[]) ||
-        (grouped.files["images[]"] as Express.Multer.File[]) ||
-        [];
+      files = grouped.files["images"] as Express.Multer.File[];
     }
 
     /** ------------------------------------------------------------
@@ -188,63 +219,49 @@ export const createProduct = async (
       }
     }
 
-    let mainImageUrl: string | null = null;
-
     if (files.length > 0) {
       await Promise.all(
         files.map(async (file, index) => {
-          // Get a Buffer for S3:
-          //  - memoryStorage: file.buffer
-          //  - diskStorage: read from file.path
           let body: Buffer;
           if (file.buffer) {
-            body = file.buffer; // ✅ Multer memoryStorage
+            body = file.buffer;
           } else if ((file as any).path) {
             body = await fs.readFile((file as any).path); // ✅ Multer diskStorage
           } else {
             throw new Error("Uploaded file missing buffer/path");
           }
 
-          const key = `products/${product.id}/${Date.now()}-${sanitizeFilename(
-            file.originalname
-          )}`;
-
-          // Your s3Service should accept a Buffer here
-          // e.g., uploadFile(body: Buffer, key: string, contentType: string): Promise<string>
-          const url = await s3Service.uploadFile(body, key, file.mimetype);
+          const url = await s3Service.uploadFile(
+            body,
+            sanitizeFilename(file.originalname),
+            file.mimetype
+          );
 
           if (!url) {
             throw new Error("Failed to upload file to S3.");
           }
           if (index === 0) {
-            await product.update({ imageUrl: url });
+            await newProduct.update({ imageUrl: url });
           }
 
-          await ProductDocument.create({
-            entityId: Number(product.id),
+          console.log("New Document:", newProduct.id);
+
+          await Document.create({
+            entityId: newProduct.id,
             entityType: "PRODUCT",
             url,
             createdBy: req?.user?.id,
             mimeType: file.mimetype,
             fileName: file.originalname,
           });
-
-          // Set first image as main image (skip PDFs)
-          if (!mainImageUrl && file.mimetype.startsWith("image/")) {
-            mainImageUrl = url;
-          }
         })
       );
-
-      if (mainImageUrl) {
-        await product.update({ mainImageUrl });
-      }
     }
 
     /** ------------------------------------------------------------
      * Respond
      * ------------------------------------------------------------ */
-    const full = await Product.findByPk(product.id); // refresh with mainImageUrl
+    const full = await Product.findByPk(newProduct.id);
     res.status(201).json({
       success: true,
       message: "Product created successfully",

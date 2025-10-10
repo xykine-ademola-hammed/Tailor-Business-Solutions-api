@@ -7,8 +7,7 @@ import {
   CreatedAt,
   UpdatedAt,
 } from "sequelize-typescript";
-import { OrderItem } from "./OrderItem";
-import { ProductDocument } from "./ProductDocument";
+import { OrderItem, Document } from "../models";
 
 export enum ProductCategory {
   SHIRT = "shirt",
@@ -42,12 +41,6 @@ export class Product extends Model {
     allowNull: false,
   })
   businessId!: string;
-
-  @Column({
-    type: DataType.STRING,
-    allowNull: true,
-  })
-  unit!: string;
 
   @Column({
     type: DataType.JSON,
@@ -91,8 +84,13 @@ export class Product extends Model {
   @UpdatedAt
   updatedAt!: Date;
 
-  @HasMany(() => ProductDocument)
-  documents!: ProductDocument[];
+  @HasMany(() => Document, {
+    foreignKey: "entityId",
+    scope: { entityType: "PRODUCT" }, // <- critical
+    as: "documents",
+    constraints: false, // <- no FK at DB level
+  })
+  documents!: Document[];
 
   @HasMany(() => OrderItem)
   orderItems!: OrderItem[];
