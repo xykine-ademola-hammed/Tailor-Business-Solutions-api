@@ -31,12 +31,6 @@ export class Measurement extends Model {
   customerId!: string;
 
   @Column({
-    type: DataType.ENUM(...Object.values(ProductCategory)),
-    allowNull: false,
-  })
-  garmentType!: ProductCategory;
-
-  @Column({
     type: DataType.JSON,
     allowNull: false,
   })

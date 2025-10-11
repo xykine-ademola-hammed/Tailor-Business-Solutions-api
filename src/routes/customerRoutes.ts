@@ -7,6 +7,7 @@ import {
   deleteCustomer,
   getCustomerStats,
   getMyCustomers,
+  createCustomerMeasurements,
 } from "../controllers/customerController";
 import { authenticate } from "../middleware/auth";
 
@@ -19,6 +20,7 @@ router.get("/my", getMyCustomers);
 router.get("/stats", getCustomerStats);
 router.get("/:id", getCustomer);
 router.post("/", createCustomer);
+router.post("/measurements", createCustomerMeasurements);
 router.put("/:id", updateCustomer);
 router.delete("/:id", deleteCustomer);
 

@@ -31,7 +31,7 @@ export class Customer extends Model {
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    unique: true,
+    unique: false,
     validate: {
       isEmail: true,
     },
@@ -78,7 +78,31 @@ export class Customer extends Model {
     type: DataType.STRING,
     allowNull: true,
   })
+  gender?: string;
+
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: true,
+  })
+  age?: number;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  status?: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
   tailorId?: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  businessId?: string;
 
   @CreatedAt
   createdAt!: Date;

@@ -46,22 +46,22 @@ export const getMyCustomers = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { search, page = 1, limit = 10 } = req.query;
+    const { businessId, search, page = 1, limit = 10 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
-    const whereClause: any = {};
+    const where: any = { businessId };
     if (search) {
-      whereClause[Op.or] = [
+      where[Op.or] = [
         { name: { [Op.iLike]: `%${search}%` } },
         { email: { [Op.iLike]: `%${search}%` } },
         { phone: { [Op.iLike]: `%${search}%` } },
       ];
     }
 
-    console.log(whereClause);
+    console.log(where);
 
     const { rows: customers, count } = await Customer.findAndCountAll({
-      where: { tailorId: req?.user?.id },
+      where,
       limit: Number(limit),
       offset,
       order: [["createdAt", "DESC"]],
@@ -106,12 +106,80 @@ export const getCustomer = async (
   }
 };
 
+export const createCustomerMeasurements = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { customer, measurements, businessId } = req.body;
+
+    const {
+      name,
+      email,
+      phone,
+      address,
+      city,
+      notes,
+      status,
+      gender,
+      age,
+      id,
+    } = customer;
+
+    let newCustomer;
+
+    if (!id) {
+      newCustomer = await Customer.create({
+        name,
+        email,
+        phone,
+        address,
+        tailorId: req?.user?.id,
+        city,
+        notes,
+        status,
+        gender,
+        age,
+        businessId,
+      });
+    }
+
+    const customerId = id || newCustomer?.id;
+
+    if (!customerId) {
+      res.status(400).json({ error: "Customer ID is required" });
+      return;
+    }
+
+    await Measurement.create({
+      customerId,
+      measurements,
+    });
+
+    res.status(201).json({
+      message: "Customer Measurement created successfully",
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
 export const createCustomer = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const { name, email, phone, address, city, notes } = req.body;
+    const {
+      name,
+      email,
+      phone,
+      address,
+      city,
+      notes,
+      status,
+      gender,
+      age,
+      businessId,
+    } = req.body;
 
     const existingCustomer = await Customer.findOne({ where: { email } });
     if (existingCustomer) {
@@ -129,6 +197,10 @@ export const createCustomer = async (
       tailorId: req?.user?.id,
       city,
       notes,
+      status,
+      gender,
+      age,
+      businessId,
     });
 
     res.status(201).json({
