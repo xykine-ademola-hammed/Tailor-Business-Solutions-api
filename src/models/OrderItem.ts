@@ -1,63 +1,78 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, CreatedAt, UpdatedAt } from 'sequelize-typescript';
-import { Order } from './Order';
-import { Product } from './Product';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  CreatedAt,
+  UpdatedAt,
+} from "sequelize-typescript";
+import { Order } from "./Order";
+import { Product } from "./Product";
 
 @Table({
-  tableName: 'order_items',
-  timestamps: true
+  tableName: "order_items",
+  timestamps: true,
 })
 export class OrderItem extends Model {
   @Column({
     type: DataType.UUID,
     defaultValue: DataType.UUIDV4,
-    primaryKey: true
+    primaryKey: true,
   })
   id!: string;
 
   @ForeignKey(() => Order)
   @Column({
     type: DataType.UUID,
-    allowNull: false
+    allowNull: false,
   })
   orderId!: string;
+
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  businessId!: string;
 
   @ForeignKey(() => Product)
   @Column({
     type: DataType.UUID,
-    allowNull: false
+    allowNull: false,
   })
   productId!: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: false
+    allowNull: false,
   })
   productName!: string;
 
   @Column({
     type: DataType.INTEGER,
     allowNull: false,
-    defaultValue: 1
+    defaultValue: 1,
   })
   quantity!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
   })
   unitPrice!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
   })
   totalPrice!: number;
 
   @Column({
-    type: DataType.TEXT,
-    allowNull: true
+    type: DataType.JSON,
+    defaultValue: {},
   })
-  specifications?: string;
+  specifications!: Record<string, any>;
 
   @CreatedAt
   createdAt!: Date;

@@ -1,83 +1,123 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, CreatedAt, UpdatedAt } from 'sequelize-typescript';
-import { Customer } from './Customer';
-import { OrderItem } from './OrderItem';
-import { Invoice } from './Invoice';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  HasMany,
+  CreatedAt,
+  UpdatedAt,
+} from "sequelize-typescript";
+import { Customer } from "./Customer";
+import { OrderItem } from "./OrderItem";
+import { Invoice } from "./Invoice";
 
 export enum OrderStatus {
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  DELIVERED = 'delivered',
-  CANCELLED = 'cancelled'
+  PENDING = "pending",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
+  DELIVERED = "delivered",
+  CANCELLED = "cancelled",
 }
 
 @Table({
-  tableName: 'orders',
-  timestamps: true
+  tableName: "orders",
+  timestamps: true,
 })
 export class Order extends Model {
   @Column({
     type: DataType.UUID,
     defaultValue: DataType.UUIDV4,
-    primaryKey: true
+    primaryKey: true,
   })
   id!: string;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    unique: true
+    unique: true,
   })
   orderNumber!: string;
 
   @ForeignKey(() => Customer)
   @Column({
     type: DataType.UUID,
-    allowNull: false
+    allowNull: false,
   })
   customerId!: string;
 
   @Column({
     type: DataType.ENUM(...Object.values(OrderStatus)),
-    defaultValue: OrderStatus.PENDING
+    defaultValue: OrderStatus.PENDING,
   })
   status!: OrderStatus;
 
   @Column({
     type: DataType.DATE,
-    allowNull: false
+    allowNull: false,
   })
   orderDate!: Date;
 
   @Column({
     type: DataType.DATE,
-    allowNull: false
+    allowNull: false,
   })
   deliveryDate!: Date;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
   })
   totalAmount!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    defaultValue: 0
+    defaultValue: 0,
   })
   advancePayment!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    defaultValue: 0
+    defaultValue: 0,
   })
   remainingPayment!: number;
 
   @Column({
     type: DataType.TEXT,
-    allowNull: true
+    allowNull: true,
   })
   notes?: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+  })
+  paymentStatus?: string;
+
+  @Column({
+    type: DataType.FLOAT,
+    allowNull: true,
+  })
+  vatOrTax?: number;
+
+  @Column({
+    type: DataType.FLOAT,
+    allowNull: true,
+  })
+  shippingCost?: number;
+
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  businessId!: string;
+
+  @Column({
+    type: DataType.JSON,
+    allowNull: false,
+  })
+  measurements!: Record<string, number>;
 
   @CreatedAt
   createdAt!: Date;

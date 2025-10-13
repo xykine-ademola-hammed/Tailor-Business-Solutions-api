@@ -1,6 +1,13 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/auth";
-import { Order, OrderItem, Customer, Product, OrderStatus } from "../models";
+import {
+  Order,
+  OrderItem,
+  Customer,
+  Product,
+  OrderStatus,
+  Measurement,
+} from "../models";
 import { Op } from "sequelize";
 import emailService from "../services/emailService";
 
@@ -9,7 +16,14 @@ export const getOrders = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { status, customerId, page = 1, limit = 10, search } = req.query;
+    const {
+      businessId,
+      status,
+      customerId,
+      page = 1,
+      limit = 10,
+      search,
+    } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
 
     const whereClause: any = {};
@@ -18,6 +32,7 @@ export const getOrders = async (
     if (search) {
       whereClause[Op.or] = [{ orderNumber: { [Op.iLike]: `%${search}%` } }];
     }
+    if (businessId) whereClause.businessId = businessId;
 
     const { rows: orders, count } = await Order.findAndCountAll({
       where: whereClause,
@@ -79,58 +94,79 @@ export const createOrder = async (
 ): Promise<void> => {
   try {
     const {
+      businessId,
+      orderNumber,
       customer,
-      customerPhone,
-      customerEmail,
       orderDate,
       deliveryDate,
       items,
       advancePayment,
+      vatOrTax,
+      status,
       notes,
+      shippingCost,
+      measurements,
     } = req.body;
 
-    let findCustomer = await Customer.findOne({
-      where: {
-        email: customerEmail,
-      },
-    });
-    if (!findCustomer) {
-      findCustomer = await Customer.create({
-        name: customer,
-        email: customerEmail,
-        phone: customerPhone,
-      });
+    let findCustomer;
+
+    if (!customer?.id) {
+      findCustomer = await Customer.create(customer);
+    } else {
+      findCustomer = await Customer.findByPk(customer.id);
+    }
+
+    if (measurements?.id) {
+      const measurement = await Measurement.findByPk(measurements.id);
+      await measurement?.update({ measurements });
+    } else {
+      await Measurement.create({ measurements, customerId: findCustomer?.id });
     }
 
     let totalAmount = 0;
     const orderItems = [];
 
     for (const item of items) {
-      const product = await Product.findByPk(item.productId);
+      let product = await Product.findByPk(item.id);
       if (!product) {
-        res.status(404).json({ error: `Product ${item.productId} not found` });
-        return;
+        product = await Product.create({
+          businessId,
+          name: item.name,
+          description: item.description,
+          options: {
+            fabricTypes: [{ name: item.fabricName, cost: item.fabricPrice }],
+            costItems: item.costItems,
+            costMethod: item.costMethod,
+          },
+          lowPrice: item.price,
+          highPrice: item.price,
+        });
       }
 
       const itemTotal = Number(item.unitPrice) * Number(item.quantity);
       totalAmount += itemTotal;
 
       orderItems.push({
+        businessId,
         productId: product.id,
         productName: product.name,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unitPrice: item.price,
         totalPrice: itemTotal,
-        specifications: item.specifications,
+        specifications: {
+          fabricTypes: [{ name: item.fabricName, cost: item.fabricPrice }],
+          costItems: item.costItems,
+          costMethod: item.costMethod,
+        },
       });
     }
 
-    const orderNumber = `ORD-${Date.now()}`;
     const remainingPayment = totalAmount - Number(advancePayment || 0);
 
     const order = await Order.create({
+      businessId,
       orderNumber,
-      customerId: findCustomer.id,
+      customerId: findCustomer?.id,
       orderDate,
       deliveryDate,
       totalAmount,
@@ -138,6 +174,10 @@ export const createOrder = async (
       remainingPayment,
       notes,
       status: OrderStatus.PENDING,
+      paymentStatus: status,
+      vatOrTax,
+      shippingCost,
+      measurements,
     });
 
     for (const item of orderItems) {
@@ -147,7 +187,7 @@ export const createOrder = async (
       });
     }
 
-    await findCustomer.update({
+    await findCustomer?.update({
       totalSpent: Number(customer.totalSpent) + totalAmount,
       orderCount: customer.orderCount + 1,
     });
