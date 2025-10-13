@@ -1,99 +1,114 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, CreatedAt, UpdatedAt } from 'sequelize-typescript';
-import { Order } from './Order';
-import { Customer } from './Customer';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  ForeignKey,
+  BelongsTo,
+  CreatedAt,
+  UpdatedAt,
+} from "sequelize-typescript";
+import { Order } from "./Order";
+import { Customer } from "./Customer";
 
 export enum InvoiceStatus {
-  DRAFT = 'draft',
-  SENT = 'sent',
-  PAID = 'paid',
-  OVERDUE = 'overdue',
-  CANCELLED = 'cancelled'
+  DRAFT = "draft",
+  SENT = "sent",
+  PAID = "paid",
+  OVERDUE = "overdue",
+  CANCELLED = "cancelled",
 }
 
 @Table({
-  tableName: 'invoices',
-  timestamps: true
+  tableName: "invoices",
+  timestamps: true,
 })
 export class Invoice extends Model {
   @Column({
     type: DataType.UUID,
     defaultValue: DataType.UUIDV4,
-    primaryKey: true
+    primaryKey: true,
   })
   id!: string;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    unique: true
+    unique: true,
   })
   invoiceNumber!: string;
 
   @ForeignKey(() => Order)
   @Column({
     type: DataType.UUID,
-    allowNull: false
+    allowNull: false,
   })
   orderId!: string;
+
+  @Column({
+    type: DataType.UUID,
+    allowNull: false,
+  })
+  businessId!: string;
 
   @ForeignKey(() => Customer)
   @Column({
     type: DataType.UUID,
-    allowNull: false
+    allowNull: false,
   })
   customerId!: string;
 
   @Column({
     type: DataType.DATE,
-    allowNull: false
+    allowNull: false,
   })
   invoiceDate!: Date;
 
   @Column({
     type: DataType.DATE,
-    allowNull: false
+    allowNull: false,
   })
   dueDate!: Date;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
   })
   subtotal!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    defaultValue: 0
+    defaultValue: 0,
   })
   tax!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    defaultValue: 0
+    defaultValue: 0,
   })
   discount!: number;
 
   @Column({
     type: DataType.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
   })
   total!: number;
 
   @Column({
     type: DataType.ENUM(...Object.values(InvoiceStatus)),
-    defaultValue: InvoiceStatus.DRAFT
+    defaultValue: InvoiceStatus.DRAFT,
   })
   status!: InvoiceStatus;
 
   @Column({
     type: DataType.STRING,
-    allowNull: true
+    allowNull: true,
   })
   pdfUrl?: string;
 
   @Column({
     type: DataType.TEXT,
-    allowNull: true
+    allowNull: true,
   })
   notes?: string;
 
