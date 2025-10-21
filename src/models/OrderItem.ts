@@ -70,9 +70,33 @@ export class OrderItem extends Model {
 
   @Column({
     type: DataType.JSON,
+    allowNull: false,
     defaultValue: {},
+    get(this: OrderItem) {
+      const raw = this.getDataValue("specifications") as unknown;
+      if (raw == null) return {};
+      if (typeof raw === "string") {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return {};
+        }
+      }
+      return raw as Record<string, any>;
+    },
+    set(this: OrderItem, value: unknown) {
+      if (value == null) return this.setDataValue("specifications", {});
+      if (typeof value === "string") {
+        try {
+          return this.setDataValue("specifications", JSON.parse(value));
+        } catch {
+          /* if not valid JSON, store as-is */
+        }
+      }
+      this.setDataValue("specifications", value as Record<string, any>);
+    },
   })
-  specifications!: Record<string, any>;
+  declare specifications: Record<string, any>;
 
   @CreatedAt
   createdAt!: Date;

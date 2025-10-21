@@ -44,9 +44,33 @@ export class Product extends Model {
 
   @Column({
     type: DataType.JSON,
+    allowNull: false,
     defaultValue: {},
+    get(this: Product) {
+      const raw = this.getDataValue("options") as unknown;
+      if (raw == null) return {};
+      if (typeof raw === "string") {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return {};
+        }
+      }
+      return raw as Record<string, any>;
+    },
+    set(this: Product, value: unknown) {
+      if (value == null) return this.setDataValue("options", {});
+      if (typeof value === "string") {
+        try {
+          return this.setDataValue("options", JSON.parse(value));
+        } catch {
+          /* if not valid JSON, store as-is */
+        }
+      }
+      this.setDataValue("options", value as Record<string, any>);
+    },
   })
-  options!: Record<string, any>;
+  declare options: Record<string, any>;
 
   @Column({
     type: DataType.TEXT,

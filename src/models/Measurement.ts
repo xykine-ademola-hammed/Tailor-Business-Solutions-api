@@ -33,8 +33,32 @@ export class Measurement extends Model {
   @Column({
     type: DataType.JSON,
     allowNull: false,
+    defaultValue: {},
+    get(this: Measurement) {
+      const raw = this.getDataValue("measurements") as unknown;
+      if (raw == null) return {};
+      if (typeof raw === "string") {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return {};
+        }
+      }
+      return raw as Record<string, any>;
+    },
+    set(this: Measurement, value: unknown) {
+      if (value == null) return this.setDataValue("measurements", {});
+      if (typeof value === "string") {
+        try {
+          return this.setDataValue("measurements", JSON.parse(value));
+        } catch {
+          /* if not valid JSON, store as-is */
+        }
+      }
+      this.setDataValue("measurements", value as Record<string, any>);
+    },
   })
-  measurements!: Record<string, number>;
+  declare measurements: Record<string, any>;
 
   @Column({
     type: DataType.TEXT,

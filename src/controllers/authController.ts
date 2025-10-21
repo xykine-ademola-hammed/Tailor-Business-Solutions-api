@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Business, User } from "../models";
-import { generateToken } from "../utils/jwt";
+import { generateToken, verifyToken } from "../utils/jwt";
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -72,5 +72,29 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyCurrentToken = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { token } = req.body;
+  if (!token) {
+    res.status(400).json({ valid: false, error: "Token required" });
+    return;
+  }
+
+  try {
+    const result = verifyToken(token);
+    if (result) {
+      res.status(201).json({ valid: true, message: "Token is still valid" });
+      return;
+    } else {
+      res.status(400).json({ valid: false, error: "Token required" });
+      return;
+    }
+  } catch (err) {
+    res.status(401).json({ valid: false, error: "Invalid or expired token" });
   }
 };

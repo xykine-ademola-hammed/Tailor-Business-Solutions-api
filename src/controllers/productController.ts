@@ -111,6 +111,26 @@ export const getProduct = async (
   }
 };
 
+export const getProductDetail = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findByPk(id, { include: ["documents"] });
+
+    if (!product) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+
+    res.json({ product });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 // import { Business, Product, Document } from "..."; // your models
 // import { s3Service } from "...";                        // your S3 wrapper
 // import type { AuthRequest } from "...";                 // your auth request type
