@@ -1,55 +1,66 @@
-import { Table, Column, Model, DataType, BeforeCreate, BeforeUpdate, CreatedAt, UpdatedAt } from 'sequelize-typescript';
-import bcrypt from 'bcryptjs';
+import {
+  Table,
+  Column,
+  Model,
+  DataType,
+  BeforeCreate,
+  BeforeUpdate,
+  CreatedAt,
+  UpdatedAt,
+  Index,
+} from "sequelize-typescript";
+import bcrypt from "bcryptjs";
 
 export enum UserRole {
-  ADMIN = 'admin',
-  MANAGER = 'manager',
-  STAFF = 'staff'
+  ADMIN = "admin",
+  MANAGER = "manager",
+  STAFF = "staff",
 }
 
 @Table({
-  tableName: 'users',
-  timestamps: true
+  tableName: "users",
+  timestamps: true,
 })
 export class User extends Model {
   @Column({
     type: DataType.UUID,
     defaultValue: DataType.UUIDV4,
-    primaryKey: true
+    primaryKey: true,
   })
   id!: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: false
+    allowNull: false,
   })
   name!: string;
 
+  @Index({ name: "uq_email", unique: true })
   @Column({
     type: DataType.STRING,
     allowNull: false,
     unique: true,
     validate: {
-      isEmail: true
-    }
+      isEmail: true,
+    },
   })
   email!: string;
 
   @Column({
     type: DataType.STRING,
-    allowNull: false
+    allowNull: false,
   })
   password!: string;
 
   @Column({
     type: DataType.ENUM(...Object.values(UserRole)),
-    defaultValue: UserRole.STAFF
+    defaultValue: UserRole.STAFF,
   })
   role!: UserRole;
 
   @Column({
     type: DataType.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
   })
   isActive!: boolean;
 
@@ -62,7 +73,7 @@ export class User extends Model {
   @BeforeCreate
   @BeforeUpdate
   static async hashPassword(user: User) {
-    if (user.changed('password')) {
+    if (user.changed("password")) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(user.password, salt);
     }
